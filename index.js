@@ -65,10 +65,19 @@ app.post('/api/register', async (req, res) => {
     return res.status(400).json({ error: 'Ce pseudo est déjà pris.' });
 
   try {
-    const edResponse = await fetch('https://api.ecoledirecte.com/v3/login.awp', {
+    const edResponse = await fetch('https://api.ecoledirecte.com/v3/login.awp?v=4', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `data=${JSON.stringify({ identifiant: edLogin, motdepasse: edPassword })}`,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'ecoledirecte/4 CFNetwork/1492.0.1 Darwin/23.3.0',
+        'X-Token': '',
+      },
+      body: `data=${encodeURIComponent(JSON.stringify({
+        identifiant: edLogin,
+        motdepasse: edPassword,
+        isRelogin: false,
+        uuid: '',
+      }))}`,
     });
 
     const edData = await edResponse.json();
