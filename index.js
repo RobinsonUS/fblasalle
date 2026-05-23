@@ -72,15 +72,17 @@ app.post('/api/register', async (req, res) => {
         'User-Agent': 'ecoledirecte/4 CFNetwork/1492.0.1 Darwin/23.3.0',
         'X-Token': '',
       },
-      body: `data=${encodeURIComponent(JSON.stringify({
+      body: `data=${JSON.stringify({
         identifiant: edLogin,
         motdepasse: edPassword,
         isRelogin: false,
         uuid: '',
-      }))}`,
+      })}`,
     });
 
     const edData = await edResponse.json();
+
+    console.log('Réponse EcoleDirecte complète :', JSON.stringify(edData, null, 2));
 
     if (edData.code !== 200)
       return res.status(401).json({ error: 'Identifiants EcoleDirecte incorrects.' });
