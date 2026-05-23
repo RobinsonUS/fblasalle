@@ -1,0 +1,13 @@
+{
+  "name": "reseau-lycee",
+  "version": "1.0.0",
+  "description": "Réseau social lycée FBLaSalle",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
