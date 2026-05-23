@@ -5,19 +5,438 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FBLaSalle</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --white:   #ffffff;
+      --black:   #000000;
+      --grey:    #888888;
+      --light:   #cccccc;
+      --error:   #ff4444;
+      --success: #44cc88;
     }
 
     html, body {
+      width: 100%; height: 100%;
+      background: var(--black);
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #home {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .btn {
+      width: 220px;
+      padding: 14px 0;
+      border: 2px solid var(--white);
+      background: transparent;
+      color: var(--white);
+      font-size: 16px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background .2s, color .2s;
+    }
+    .btn:hover { background: var(--white); color: var(--black); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    .overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.85);
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    .overlay.open { display: flex; }
+
+    .modal {
+      background: #111;
+      border: 1px solid #333;
+      padding: 40px 36px;
       width: 100%;
-      height: 100%;
-      background-color: #000000;
+      max-width: 420px;
+      position: relative;
+    }
+
+    .modal-title {
+      font-size: 13px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--grey);
+      margin-bottom: 28px;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 16px; right: 20px;
+      background: none; border: none;
+      color: var(--grey);
+      font-size: 22px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .close-btn:hover { color: var(--white); }
+
+    .step { display: none; }
+    .step.active { display: block; }
+
+    .step-indicator {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+    .step-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #333;
+      transition: background .2s;
+    }
+    .step-dot.active { background: var(--white); }
+
+    .field { margin-bottom: 18px; }
+
+    label {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--grey);
+      margin-bottom: 8px;
+    }
+
+    input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid #333;
+      color: var(--white);
+      font-size: 15px;
+      padding: 8px 0;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input:focus { border-color: var(--white); }
+    input::placeholder { color: #444; }
+
+    .msg {
+      font-size: 13px;
+      margin-bottom: 20px;
+      min-height: 18px;
+      display: none;
+    }
+    .msg.error   { color: var(--error);   display: block; }
+    .msg.success { color: var(--success); display: block; }
+    .msg.info    { color: var(--grey);    display: block; }
+
+    .btn-main {
+      width: 100%;
+      padding: 14px;
+      background: var(--white);
+      color: var(--black);
+      border: none;
+      font-size: 13px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: opacity .2s;
+    }
+    .btn-main:hover   { opacity: .85; }
+    .btn-main:disabled { opacity: .4; cursor: not-allowed; }
+
+    .success-icon { font-size: 40px; margin-bottom: 16px; }
+    .success-text { font-size: 14px; color: var(--light); line-height: 1.7; }
+    .success-username { color: var(--white); font-weight: bold; }
+
+    .username-status { font-size: 11px; margin-top: 6px; min-height: 14px; }
+    .username-status.ok  { color: var(--success); }
+    .username-status.ko  { color: var(--error); }
+
+    .ed-info {
+      font-size: 12px;
+      color: var(--grey);
+      margin-bottom: 20px;
+      line-height: 1.6;
+      padding: 12px;
+      border: 1px solid #222;
+      background: #0a0a0a;
     }
   </style>
 </head>
 <body>
+
+<div id="home">
+  <button class="btn" onclick="openModal('modal-register')">Inscription</button>
+  <button class="btn" onclick="openModal('modal-login')">Connexion</button>
+</div>
+
+<div class="overlay" id="modal-register">
+  <div class="modal">
+    <button class="close-btn" onclick="closeModal('modal-register')">✕</button>
+    <p class="modal-title">Créer un compte</p>
+    <div class="step-indicator">
+      <div class="step-dot active" id="dot-1"></div>
+      <div class="step-dot"        id="dot-2"></div>
+      <div class="step-dot"        id="dot-3"></div>
+    </div>
+
+    <div class="step active" id="step-1">
+      <div class="field">
+        <label for="reg-username">Pseudo</label>
+        <input type="text" id="reg-username" placeholder="ex: jean_dupont" autocomplete="off" />
+        <div class="username-status" id="username-status"></div>
+      </div>
+      <div class="field">
+        <label for="reg-password">Mot de passe (min. 5 caractères)</label>
+        <input type="password" id="reg-password" placeholder="••••••••" />
+      </div>
+      <div class="field">
+        <label for="reg-confirm">Confirmer le mot de passe</label>
+        <input type="password" id="reg-confirm" placeholder="••••••••" />
+      </div>
+      <div class="msg" id="msg-step1"></div>
+      <button class="btn-main" id="btn-step1" onclick="validateStep1()">Suivant</button>
+    </div>
+
+    <div class="step" id="step-2">
+      <div class="ed-info">
+        🔒 Tes identifiants EcoleDirecte ne sont utilisés que pour vérifier que tu es bien élève du lycée. Ils ne sont jamais stockés.
+      </div>
+      <div class="field">
+        <label for="ed-login">Identifiant EcoleDirecte</label>
+        <input type="text" id="ed-login" placeholder="ex: jean.dupont" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="ed-password">Mot de passe EcoleDirecte</label>
+        <input type="password" id="ed-password" placeholder="••••••••" />
+      </div>
+      <div class="msg" id="msg-step2"></div>
+      <button class="btn-main" id="btn-step2" onclick="validateStep2()">Créer mon compte</button>
+    </div>
+
+    <div class="step" id="step-3">
+      <div class="success-icon">✓</div>
+      <p class="success-text">
+        Bienvenue, <span class="success-username" id="welcome-username"></span> !<br/>
+        Ton compte a bien été créé.
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-login">
+  <div class="modal">
+    <button class="close-btn" onclick="closeModal('modal-login')">✕</button>
+    <p class="modal-title">Connexion</p>
+    <div class="field">
+      <label for="login-username">Pseudo</label>
+      <input type="text" id="login-username" placeholder="ton pseudo" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label for="login-password">Mot de passe</label>
+      <input type="password" id="login-password" placeholder="••••••••" />
+    </div>
+    <div class="msg" id="msg-login"></div>
+    <button class="btn-main" id="btn-login" onclick="doLogin()">Se connecter</button>
+  </div>
+</div>
+
+<script>
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  if (id === 'modal-register') resetRegister();
+}
+
+document.querySelectorAll('.overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
+
+function showMsg(id, text, type) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = `msg ${type}`;
+}
+function clearMsg(id) {
+  const el = document.getElementById(id);
+  el.textContent = '';
+  el.className = 'msg';
+}
+function setLoading(btnId, loading, text = '') {
+  const btn = document.getElementById(btnId);
+  btn.disabled = loading;
+  if (text) btn.textContent = loading ? '...' : text;
+}
+
+let usernameTimer = null;
+let usernameOk = false;
+
+document.getElementById('reg-username').addEventListener('input', function () {
+  const val = this.value.trim();
+  const statusEl = document.getElementById('username-status');
+  usernameOk = false;
+
+  if (val.length < 3) {
+    statusEl.textContent = '';
+    statusEl.className = 'username-status';
+    return;
+  }
+
+  clearTimeout(usernameTimer);
+  statusEl.textContent = '…';
+  statusEl.className = 'username-status';
+
+  usernameTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`/api/check-username/${encodeURIComponent(val)}`);
+      const data = await res.json();
+      if (data.available) {
+        statusEl.textContent = '✓ Pseudo disponible';
+        statusEl.className = 'username-status ok';
+        usernameOk = true;
+      } else {
+        statusEl.textContent = '✗ Pseudo déjà pris';
+        statusEl.className = 'username-status ko';
+        usernameOk = false;
+      }
+    } catch { statusEl.textContent = ''; }
+  }, 500);
+});
+
+function validateStep1() {
+  const username = document.getElementById('reg-username').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const confirm  = document.getElementById('reg-confirm').value;
+
+  if (username.length < 3)
+    return showMsg('msg-step1', 'Le pseudo doit faire au moins 3 caractères.', 'error');
+  if (!/^[a-zA-Z0-9_.\-]+$/.test(username))
+    return showMsg('msg-step1', 'Le pseudo ne peut contenir que des lettres, chiffres, _ . -', 'error');
+  if (!usernameOk)
+    return showMsg('msg-step1', 'Ce pseudo est déjà pris ou non vérifié.', 'error');
+  if (password.length < 5)
+    return showMsg('msg-step1', 'Le mot de passe doit faire au moins 5 caractères.', 'error');
+  if (password !== confirm)
+    return showMsg('msg-step1', 'Les mots de passe ne correspondent pas.', 'error');
+
+  clearMsg('msg-step1');
+  goToStep(2);
+}
+
+async function validateStep2() {
+  const username   = document.getElementById('reg-username').value.trim();
+  const password   = document.getElementById('reg-password').value;
+  const edLogin    = document.getElementById('ed-login').value.trim();
+  const edPassword = document.getElementById('ed-password').value;
+
+  if (!edLogin || !edPassword)
+    return showMsg('msg-step2', 'Remplis tes identifiants EcoleDirecte.', 'error');
+
+  setLoading('btn-step2', true, 'Créer mon compte');
+  clearMsg('msg-step2');
+
+  try {
+    const res = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, edLogin, edPassword }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showMsg('msg-step2', data.error || 'Une erreur est survenue.', 'error');
+      setLoading('btn-step2', false, 'Créer mon compte');
+      return;
+    }
+
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('username', data.username);
+    document.getElementById('welcome-username').textContent = data.username;
+    goToStep(3);
+
+  } catch (err) {
+    showMsg('msg-step2', 'Erreur réseau, réessaie.', 'error');
+    setLoading('btn-step2', false, 'Créer mon compte');
+  }
+}
+
+function goToStep(n) {
+  document.querySelectorAll('.step').forEach((s, i) => s.classList.toggle('active', i === n - 1));
+  document.querySelectorAll('.step-dot').forEach((d, i) => d.classList.toggle('active', i < n));
+}
+
+function resetRegister() {
+  goToStep(1);
+  ['reg-username','reg-password','reg-confirm','ed-login','ed-password'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  clearMsg('msg-step1');
+  clearMsg('msg-step2');
+  document.getElementById('username-status').textContent = '';
+  document.getElementById('btn-step2').textContent = 'Créer mon compte';
+  document.getElementById('btn-step2').disabled = false;
+  usernameOk = false;
+}
+
+async function doLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+
+  if (!username || !password)
+    return showMsg('msg-login', 'Remplis tous les champs.', 'error');
+
+  setLoading('btn-login', true, 'Se connecter');
+  clearMsg('msg-login');
+
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showMsg('msg-login', data.error || 'Une erreur est survenue.', 'error');
+      setLoading('btn-login', false, 'Se connecter');
+      return;
+    }
+
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('username', data.username);
+    showMsg('msg-login', `Connecté en tant que ${data.username} !`, 'success');
+
+    setTimeout(() => {
+      closeModal('modal-login');
+      setLoading('btn-login', false, 'Se connecter');
+      clearMsg('msg-login');
+    }, 1500);
+
+  } catch (err) {
+    showMsg('msg-login', 'Erreur réseau, réessaie.', 'error');
+    setLoading('btn-login', false, 'Se connecter');
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  if (document.getElementById('modal-register').classList.contains('open')) {
+    if (document.getElementById('step-1').classList.contains('active')) validateStep1();
+    else if (document.getElementById('step-2').classList.contains('active')) validateStep2();
+  }
+  if (document.getElementById('modal-login').classList.contains('open')) doLogin();
+});
+</script>
 </body>
 </html>
